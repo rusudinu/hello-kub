@@ -16,90 +16,121 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, World!")
 }
 
-// fibonacciHandler computes Fibonacci sequence up to a given number
+// fibonacciHandler computes Fibonacci numbers for a specified duration to generate CPU load
 func fibonacciHandler(w http.ResponseWriter, r *http.Request) {
-	// Extract number from URL path /fib/{number}
+	// Extract number from URL path /fib/{duration}
 	path := strings.TrimPrefix(r.URL.Path, "/fib/")
 	if path == "" || path == r.URL.Path {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"error": "Please provide a number in the format /fib/{number}"}`)
+		fmt.Fprintf(w, `{"error": "Please provide duration in minutes in the format /fib/{minutes}"}`)
 		return
 	}
 
-	// Parse the target number
-	targetStr := path
-	target, err := strconv.ParseInt(targetStr, 10, 64)
-	if err != nil || target < 0 {
+	// Parse the duration in minutes
+	durationStr := path
+	durationMins, err := strconv.ParseInt(durationStr, 10, 64)
+	if err != nil || durationMins <= 0 {
 		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"error": "Invalid number. Please provide a positive integer."}`)
+		fmt.Fprintf(w, `{"error": "Invalid duration. Please provide a positive integer (minutes)."}`)
 		return
+	}
+
+	// Get number of workers (default to number of CPUs)
+	workersStr := r.URL.Query().Get("workers")
+	workers := runtime.NumCPU()
+	if workersStr != "" {
+		if w, err := strconv.Atoi(workersStr); err == nil && w > 0 && w <= 20 {
+			workers = w
+		}
 	}
 
 	// No maximum limit - let Kubernetes handle scaling!
 
-	fmt.Printf("Computing %d Fibonacci numbers\n", target)
+	fmt.Printf("Computing Fibonacci numbers with %d workers for %d minutes\n", workers, durationMins)
 	start := time.Now()
 
-	// Compute first N Fibonacci numbers
-	sequence := computeFibonacci(target)
+	// Compute Fibonacci numbers for specified duration
+	result := computeFibonacciLoad(durationMins, workers)
 
 	elapsed := time.Since(start)
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// Format response
-	sequenceStr := "["
-	for i, num := range sequence {
-		if i > 0 {
-			sequenceStr += ", "
-		}
-		sequenceStr += num.String()
-	}
-	sequenceStr += "]"
-
 	fmt.Fprintf(w, `{
-        "iterations": %d,
-        "count": %d,
-        "sequence": %s,
-        "computation_time": "%v",
-        "largest_number": "%s"
-    }`, target, len(sequence), sequenceStr, elapsed, sequence[len(sequence)-1].String())
+        "duration_requested": "%dm",
+        "duration_actual": "%v",
+        "workers": %d,
+        "total_computations": %d,
+        "computations_per_second": %.2f,
+        "largest_fibonacci_computed": "%s",
+        "cpu_cores": %d
+    }`, durationMins, elapsed, workers, result.TotalComputations, float64(result.TotalComputations)/elapsed.Seconds(), result.LargestFib.String(), runtime.NumCPU())
 }
 
-// computeFibonacci generates the first N Fibonacci numbers
-func computeFibonacci(n int64) []*big.Int {
-	if n <= 0 {
-		return []*big.Int{}
+type FibResult struct {
+	TotalComputations int64
+	LargestFib        *big.Int
+}
+
+// computeFibonacciLoad generates CPU load by computing Fibonacci numbers for a duration
+func computeFibonacciLoad(durationMins int64, workers int) FibResult {
+	duration := time.Duration(durationMins) * time.Minute
+	endTime := time.Now().Add(duration)
+
+	// Channel to collect results from workers
+	results := make(chan FibResult, workers)
+
+	// Start workers
+	for i := 0; i < workers; i++ {
+		go func(workerID int) {
+			computations := int64(0)
+			largestFib := big.NewInt(0)
+
+			// Keep computing Fibonacci numbers until time is up
+			for time.Now().Before(endTime) {
+				// Compute a batch of Fibonacci numbers (memory efficient)
+				batchSize := 1000 // Compute 1000 numbers then restart sequence
+				a, b := big.NewInt(0), big.NewInt(1)
+
+				for j := 0; j < batchSize && time.Now().Before(endTime); j++ {
+					// Calculate next Fibonacci number
+					next := new(big.Int)
+					next.Add(a, b)
+
+					// Keep track of largest number computed
+					if next.Cmp(largestFib) > 0 {
+						largestFib.Set(next)
+					}
+
+					// Move to next iteration
+					a.Set(b)
+					b.Set(next)
+
+					computations++
+				}
+			}
+
+			fmt.Printf("Worker %d completed %d computations\n", workerID, computations)
+			results <- FibResult{TotalComputations: computations, LargestFib: largestFib}
+		}(i)
 	}
 
-	sequence := []*big.Int{}
+	// Collect results from all workers
+	totalComputations := int64(0)
+	overallLargest := big.NewInt(0)
 
-	// Handle base cases
-	if n >= 1 {
-		sequence = append(sequence, big.NewInt(0))
-	}
-	if n >= 2 {
-		sequence = append(sequence, big.NewInt(1))
-	}
-
-	// Generate remaining Fibonacci numbers
-	if n > 2 {
-		a, b := big.NewInt(0), big.NewInt(1)
-
-		for i := int64(2); i < n; i++ {
-			// Calculate next Fibonacci number
-			next := new(big.Int)
-			next.Add(a, b)
-
-			sequence = append(sequence, new(big.Int).Set(next))
-
-			// Move to next iteration
-			a.Set(b)
-			b.Set(next)
+	for i := 0; i < workers; i++ {
+		result := <-results
+		totalComputations += result.TotalComputations
+		if result.LargestFib.Cmp(overallLargest) > 0 {
+			overallLargest.Set(result.LargestFib)
 		}
 	}
 
-	return sequence
+	return FibResult{
+		TotalComputations: totalComputations,
+		LargestFib:        overallLargest,
+	}
 }
 
 func heavyComputeHandler(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +210,8 @@ func main() {
 	fmt.Println("Endpoints:")
 	fmt.Println("  GET /              - Hello World")
 	fmt.Println("  GET /health        - Health check")
-	fmt.Println("  GET /fib/{number}  - First N Fibonacci numbers")
+	fmt.Println("  GET /fib/{minutes} - CPU-intensive Fibonacci computation for N minutes")
+	fmt.Println("    ?workers=N       - Use N workers (1-20, default CPU count)")
 	fmt.Println("  GET /heavy         - CPU intensive task")
 	fmt.Println("    ?duration=N      - Run for N seconds (1-60, default 10)")
 	fmt.Println("    ?workers=N       - Use N workers (1-10, default CPU count)")
