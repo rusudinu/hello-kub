@@ -33,3 +33,30 @@ If you want to use k3s's built-in load balancer (Traefik), you can enable ingres
 # ingress.hosts[0].host: hello-world.your-domain.com
 
 helm upgrade hello-world ./helm
+
+Deployment workflow:
+Option 1: Copy just the helm folder
+
+# From your dev machine
+scp -r helm/ user@k3s-server:/path/to/deployment/
+
+# On k3s server
+helm install hello-world ./helm/ --kubeconfig /etc/rancher/k3s/k3s.yaml
+
+Option 2: Clone repo but only use helm folder
+
+# On k3s server
+git clone your-repo.git
+cd your-repo
+helm install hello-world ./helm/
+Option 3: Package the helm chart
+
+
+
+# From your dev machine
+helm package ./helm/
+# This creates hello-world-server-0.1.0.tgz
+
+# Copy and install the package
+scp hello-world-server-0.1.0.tgz user@k3s-server:
+helm install hello-world hello-world-server-0.1.0.tgz

@@ -6,21 +6,25 @@ image:
   pullPolicy: IfNotPresent
 
 service:
-  type: NodePort
+  type: ClusterIP
   port: 80
   targetPort: 8080
-  nodePort: 30080
 
 ingress:
   enabled: true
   className: "traefik"
-  annotations: {}
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    traefik.ingress.kubernetes.io/redirect-entry-point: https
   hosts:
-    - host: hello-world.local
+    - host: hello-kub.rusudinu.ro
       paths:
         - path: /
           pathType: Prefix
-  tls: []
+  tls:
+    - secretName: hello-kub-tls
+      hosts:
+        - hello-kub.rusudinu.ro
 
 resources:
   limits:
