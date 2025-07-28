@@ -37,10 +37,10 @@ func fibonacciHandler(w http.ResponseWriter, r *http.Request) {
 
 	// No maximum limit - let Kubernetes handle scaling!
 
-	fmt.Printf("Computing Fibonacci sequence up to %d\n", target)
+	fmt.Printf("Computing %d Fibonacci numbers\n", target)
 	start := time.Now()
 
-	// Compute Fibonacci sequence up to target
+	// Compute first N Fibonacci numbers
 	sequence := computeFibonacci(target)
 
 	elapsed := time.Since(start)
@@ -58,7 +58,7 @@ func fibonacciHandler(w http.ResponseWriter, r *http.Request) {
 	sequenceStr += "]"
 
 	fmt.Fprintf(w, `{
-        "target": %d,
+        "iterations": %d,
         "count": %d,
         "sequence": %s,
         "computation_time": "%v",
@@ -66,40 +66,37 @@ func fibonacciHandler(w http.ResponseWriter, r *http.Request) {
     }`, target, len(sequence), sequenceStr, elapsed, sequence[len(sequence)-1].String())
 }
 
-// computeFibonacci generates Fibonacci numbers up to (and including) the target
-func computeFibonacci(target int64) []*big.Int {
-	if target < 0 {
+// computeFibonacci generates the first N Fibonacci numbers
+func computeFibonacci(n int64) []*big.Int {
+	if n <= 0 {
 		return []*big.Int{}
 	}
 
 	sequence := []*big.Int{}
 
 	// Handle base cases
-	if target >= 0 {
+	if n >= 1 {
 		sequence = append(sequence, big.NewInt(0))
 	}
-	if target >= 1 {
+	if n >= 2 {
 		sequence = append(sequence, big.NewInt(1))
 	}
 
-	// Generate Fibonacci numbers
-	a, b := big.NewInt(0), big.NewInt(1)
+	// Generate remaining Fibonacci numbers
+	if n > 2 {
+		a, b := big.NewInt(0), big.NewInt(1)
 
-	for {
-		// Calculate next Fibonacci number
-		next := new(big.Int)
-		next.Add(a, b)
+		for i := int64(2); i < n; i++ {
+			// Calculate next Fibonacci number
+			next := new(big.Int)
+			next.Add(a, b)
 
-		// Check if we've exceeded the target
-		if next.Cmp(big.NewInt(target)) > 0 {
-			break
+			sequence = append(sequence, new(big.Int).Set(next))
+
+			// Move to next iteration
+			a.Set(b)
+			b.Set(next)
 		}
-
-		sequence = append(sequence, new(big.Int).Set(next))
-
-		// Move to next iteration
-		a.Set(b)
-		b.Set(next)
 	}
 
 	return sequence
@@ -182,7 +179,7 @@ func main() {
 	fmt.Println("Endpoints:")
 	fmt.Println("  GET /              - Hello World")
 	fmt.Println("  GET /health        - Health check")
-	fmt.Println("  GET /fib/{number}  - Fibonacci sequence up to number")
+	fmt.Println("  GET /fib/{number}  - First N Fibonacci numbers")
 	fmt.Println("  GET /heavy         - CPU intensive task")
 	fmt.Println("    ?duration=N      - Run for N seconds (1-60, default 10)")
 	fmt.Println("    ?workers=N       - Use N workers (1-10, default CPU count)")
