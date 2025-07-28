@@ -1,67 +1,80 @@
-# Local install
+# Deployment
 
+## Local Development
+
+Build and load image into kind:
 ```bash
 docker build -t hello-kub:latest .
-
 kind load docker-image hello-kub:latest
 ```
 
-Update values.yaml with:
+Update `kubernetes/deployment.yaml` image to use local build:
 ```yaml
-image:
-  repository: hello-kub
-  tag: latest
-  pullPolicy: Never
+image: "hello-kub:latest"
+imagePullPolicy: Never
 ```
 
+Deploy to local cluster:
 ```bash
-helm install hello-world ./helm
+kubectl apply -f kubernetes/
 ```
 
-# Port Forward
-Forward the service to your local machine
+## Production Deployment
+
+Deploy all resources:
 ```bash
-kubectl port-forward service/hello-world-hello-kub 8080:80
+kubectl apply -f kubernetes/
 ```
 
-# Then open browser to:
-# http://localhost:8080
+## Common Operations
 
-# For k3s-specific considerations:
-If you want to use k3s's built-in load balancer (Traefik), you can enable ingress:
+### Port Forward
+Forward the service to your local machine:
+```bash
+kubectl port-forward service/hello-kub 8080:80
+```
+Then open browser to: http://localhost:8080
 
-# Update helm/values.yaml:
-# ingress.enabled: true
-# ingress.hosts[0].host: hello-world.your-domain.com
+### Update Deployment
+After making changes to manifests:
+```bash
+kubectl apply -f kubernetes/
+```
 
-helm upgrade hello-world ./helm --kubeconfig /etc/rancher/k3s/k3s.yaml
+### Scale Application
+```bash
+kubectl scale deployment hello-kub --replicas=5
+```
 
-Deployment workflow:
-Option 1: Copy just the helm folder
+### View Resources
+```bash
+# Check deployment status
+kubectl get deployments
+kubectl get pods
+kubectl get services
+kubectl get ingress
 
-# From your dev machine
-scp -r helm/ user@k3s-server:/path/to/deployment/
+# View logs
+kubectl logs -f deployment/hello-kub
 
-# On k3s server
-helm install hello-world ./helm/ --kubeconfig /etc/rancher/k3s/k3s.yaml
+# Describe resources for troubleshooting
+kubectl describe deployment hello-kub
+kubectl describe pod <pod-name>
+```
 
-Option 2: Clone repo but only use helm folder
+### Delete Resources
+```bash
+kubectl delete -f kubernetes/
+```
 
-# On k3s server
-git clone your-repo.git
-cd your-repo
-helm install hello-world ./helm/
-Option 3: Package the helm chart
+### Rolling Updates
+Update image tag in `kubernetes/deployment.yaml` then:
+```bash
+kubectl apply -f kubernetes/deployment.yaml
+kubectl rollout status deployment/hello-kub
+```
 
-
-
-# From your dev machine
-helm package ./helm/
-# This creates hello-kub-0.1.0.tgz
-
-# Copy and install the package
-scp hello-kub-0.1.0.tgz user@k3s-server:
-helm install hello-world hello-kub-0.1.0.tgz
-
-# Upgrade deployment
-helm upgrade --install hello-world ./helm/ --kubeconfig /etc/rancher/k3s/k3s.yaml
+### Rollback
+```bash
+kubectl rollout undo deployment/hello-kub
+```

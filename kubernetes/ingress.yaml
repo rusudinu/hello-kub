@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello-kub
+  labels:
+    app.kubernetes.io/name: hello-kub
+    app.kubernetes.io/instance: hello-kub
+    app.kubernetes.io/version: "1.0.0"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.middlewares: hello-kub-redirect-https@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - "hello-kub.rusudinu.ro"
+      secretName: hello-kub-tls
+  rules:
+    - host: "hello-kub.rusudinu.ro"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hello-kub
+                port:
+                  number: 80
