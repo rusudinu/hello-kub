@@ -1,3 +1,9 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hello-kub.fullname" . }}
+  labels:
+    {{- include "hello-kub.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
