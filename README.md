@@ -78,3 +78,23 @@ kubectl rollout status deployment/hello-kub
 ```bash
 kubectl rollout undo deployment/hello-kub
 ```
+
+### Update on server
+```bash
+kubectl set image deployment/hello-kub hello-kub=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}                             
+kubectl rollout status deployment/hello-kub
+```
+
+### Temp for GA
+
+```yml
+deploy:                                                                                                                                          
+  runs-on: ubuntu-latest                                                                                                                            
+  needs: build-and-push                 
+  if: github.ref == 'refs/heads/main'
+  steps:
+   - name: Deploy to Kubernetes
+  run:
+   kubectl set image deployment/hello-kub hello-kub=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+   kubectl rollout status deployment/hello-kub 
+```
