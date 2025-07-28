@@ -1,18 +1,14 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ include "hello-world-server.fullname" . }}
-  labels:
-    {{- include "hello-world-server.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "hello-world-server.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/name: {{ include "hello-kub.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        {{- include "hello-world-server.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/name: {{ include "hello-kub.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
     spec:
       containers:
         - name: {{ .Chart.Name }}
@@ -32,3 +28,9 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}

@@ -60,3 +60,6 @@ helm package ./helm/
 # Copy and install the package
 scp hello-world-server-0.1.0.tgz user@k3s-server:
 helm install hello-world hello-world-server-0.1.0.tgz
+
+# Upgrade deployment
+helm upgrade --install hello-world ./helm/ --kubeconfig /etc/rancher/k3s/k3s.yaml
