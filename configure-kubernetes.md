@@ -37,12 +37,13 @@ Create a complete Kubernetes configuration for a Go web application with the fol
 - Annotations:
   - cert-manager.io/cluster-issuer: letsencrypt-prod
   - traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-  - traefik.ingress.kubernetes.io/router.middlewares: hello-kub-redirect-https@kubernetescrd
+  - traefik.ingress.kubernetes.io/router.middlewares: default-hello-kub-redirect-https@kubernetescrd
 
 ### 5. Traefik Middleware
 - Name: hello-kub-redirect-https
 - Type: redirectScheme with scheme=https, permanent=true
 - This forces HTTP traffic to redirect to HTTPS
+- **Important**: Reference in ingress as `default-hello-kub-redirect-https@kubernetescrd` (namespace-name format)
 
 ## File Structure
 Create separate YAML files:
