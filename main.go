@@ -35,12 +35,7 @@ func fibonacciHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set reasonable limit to prevent server overload
-	if target > 10000 {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, `{"error": "Number too large. Maximum allowed is 10000."}`)
-		return
-	}
+	// No maximum limit - let Kubernetes handle scaling!
 
 	fmt.Printf("Computing Fibonacci sequence up to %d\n", target)
 	start := time.Now()
