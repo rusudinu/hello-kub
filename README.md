@@ -1,13 +1,13 @@
 # Local install
 
 ```bash
-docker build -t hello-world-server:latest .
+docker build -t hello-kub:latest .
 ```
 
 Update values.yaml with:
 ```yaml
 image:
-  repository: hello-world-server
+  repository: hello-kub
   tag: latest
   pullPolicy: Never
 ```
@@ -19,7 +19,7 @@ helm install hello-world ./helm
 # Port Forward
 Forward the service to your local machine
 ```bash
-kubectl port-forward service/hello-world-hello-world-server 8080:80
+kubectl port-forward service/hello-world-hello-kub 8080:80
 ```
 
 # Then open browser to:
@@ -55,11 +55,11 @@ Option 3: Package the helm chart
 
 # From your dev machine
 helm package ./helm/
-# This creates hello-world-server-0.1.0.tgz
+# This creates hello-kub-0.1.0.tgz
 
 # Copy and install the package
-scp hello-world-server-0.1.0.tgz user@k3s-server:
-helm install hello-world hello-world-server-0.1.0.tgz
+scp hello-kub-0.1.0.tgz user@k3s-server:
+helm install hello-world hello-kub-0.1.0.tgz
 
 # Upgrade deployment
 helm upgrade --install hello-world ./helm/ --kubeconfig /etc/rancher/k3s/k3s.yaml

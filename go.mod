@@ -1,3 +1,3 @@
-module hello-world-server
+module hello-kub
 
 go 1.21
