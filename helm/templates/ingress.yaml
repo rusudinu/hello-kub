@@ -8,6 +8,7 @@ metadata:
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
+    traefik.ingress.kubernetes.io/router.middlewares: {{ include "hello-kub.fullname" . }}-redirect-https@kubernetescrd
   {{- end }}
 spec:
   {{- if .Values.ingress.className }}

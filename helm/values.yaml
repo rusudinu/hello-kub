@@ -15,7 +15,8 @@ ingress:
   className: "traefik"
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-    traefik.ingress.kubernetes.io/redirect-entry-point: https
+    traefik.ingress.kubernetes.io/router.middlewares: "hello-kub-redirect-https@kubernetescrd"
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
   hosts:
     - host: hello-kub.rusudinu.ro
       paths:
