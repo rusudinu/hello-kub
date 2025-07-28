@@ -2,6 +2,8 @@
 
 ```bash
 docker build -t hello-kub:latest .
+
+kind load docker-image hello-kub:latest
 ```
 
 Update values.yaml with:
@@ -32,7 +34,7 @@ If you want to use k3s's built-in load balancer (Traefik), you can enable ingres
 # ingress.enabled: true
 # ingress.hosts[0].host: hello-world.your-domain.com
 
-helm upgrade hello-world ./helm
+helm upgrade hello-world ./helm --kubeconfig /etc/rancher/k3s/k3s.yaml
 
 Deployment workflow:
 Option 1: Copy just the helm folder
