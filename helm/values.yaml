@@ -1,18 +1,19 @@
 replicaCount: 2
 
 image:
-  repository: ghcr.io/your-username/hello-world-server
+  repository: ghcr.io/rusudinu/hello-kub
   tag: latest
   pullPolicy: IfNotPresent
 
 service:
-  type: ClusterIP
+  type: NodePort
   port: 80
   targetPort: 8080
+  nodePort: 30080
 
 ingress:
-  enabled: false
-  className: ""
+  enabled: true
+  className: "traefik"
   annotations: {}
   hosts:
     - host: hello-world.local
